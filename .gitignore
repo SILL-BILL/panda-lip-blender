@@ -1,0 +1,13 @@
+# Other common Python/Blender ignores
+__pycache__/
+*.py[cod]
+*$py.class
+.vscode/
+.vs/
+.idea/
+*.blend1
+*.blend2
+*.blend3
+*.zip
+
+Thumbs.db
