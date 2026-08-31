@@ -9,5 +9,6 @@ __pycache__/
 *.blend2
 *.blend3
 *.zip
+/dist/
 
 Thumbs.db

@@ -1,0 +1,15 @@
+schema_version = "1.0.0"
+
+id = "panda_lip_blender"
+version = "0.1.0"
+name = "Panda Lip"
+tagline = "Import PandaLip AIUEO weights as pose-bone animation"
+maintainer = "Panda Lip Contributors"
+type = "add-on"
+
+tags = ["Animation", "Import-Export"]
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Import .pandalip files selected by the user"
