@@ -16,6 +16,7 @@ sys.path.insert(0, str(REPOSITORY))
 from panda_lip_blender import importer  # noqa: E402
 import panda_lip_blender as addon  # noqa: E402
 from panda_lip_blender.constants import BONE_NAMES, CHANNELS  # noqa: E402
+from panda_lip_blender.controller import find_existing_controller  # noqa: E402
 from panda_lip_blender.core import action_base_name  # noqa: E402
 from panda_lip_blender import operators  # noqa: E402
 from panda_lip_blender.validation import PandaLipValidationError, load_pandalip  # noqa: E402
@@ -72,6 +73,28 @@ class ReferenceIntegrationTests(unittest.TestCase):
             self.assertEqual((limit.min_y, limit.max_y), (0.0, 0.0))
             self.assertTrue(limit.use_min_z and limit.use_max_z)
             self.assertEqual((limit.min_z, limit.max_z), (0.0, 0.0))
+
+    def test_generator_reuses_reference_controller_without_creating_objects(self) -> None:
+        addon.register()
+        original_mode = self.target.mode
+        if bpy.context.object is not None and bpy.context.object.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        object_count = len(bpy.data.objects)
+        collection_count = len(bpy.data.collections)
+        try:
+            settings = self.scene.panda_lip_settings
+            settings.target_armature = None
+            self.assertIs(find_existing_controller(self.scene), self.target)
+            self.assertEqual(bpy.ops.pandalip.create_controller(), {"CANCELLED"})
+            self.assertIs(settings.target_armature, self.target)
+            self.assertEqual(len(bpy.data.objects), object_count)
+            self.assertEqual(len(bpy.data.collections), collection_count)
+        finally:
+            addon.unregister()
+            if original_mode != "OBJECT":
+                self.target.select_set(True)
+                bpy.context.view_layer.objects.active = self.target
+                bpy.ops.object.mode_set(mode=original_mode)
 
     def test_import_creates_x_only_linear_subframe_keys_and_unique_action(self) -> None:
         base_name = action_base_name(str(FIXTURE))

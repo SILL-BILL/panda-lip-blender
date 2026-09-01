@@ -7,6 +7,7 @@ from bpy.props import StringProperty
 from bpy_extras.io_utils import ImportHelper
 
 from .constants import CHANNELS
+from .controller import create_controller, find_existing_controller
 from .importer import import_pandalip_file
 from .validation import PandaLipValidationError
 
@@ -29,6 +30,37 @@ class PANDALIP_OT_select_file(bpy.types.Operator, ImportHelper):
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         context.scene.panda_lip_settings.filepath = self.filepath
+        return {"FINISHED"}
+
+
+class PANDALIP_OT_create_controller(bpy.types.Operator):
+    bl_idname = "pandalip.create_controller"
+    bl_label = "Create Panda Lip Controller"
+    bl_description = "Create an independent standard AIUEO controller at the 3D cursor"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return context.mode == "OBJECT"
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        existing = find_existing_controller(context.scene)
+        if existing is not None:
+            context.scene.panda_lip_settings.target_armature = existing
+            self.report(
+                {"WARNING"},
+                f"A valid Panda Lip Controller already exists: {existing.name}",
+            )
+            return {"CANCELLED"}
+
+        try:
+            controller = create_controller(context)
+        except Exception as exc:
+            self.report({"ERROR"}, f"Could not create Panda Lip Controller: {exc}")
+            return {"CANCELLED"}
+
+        context.scene.panda_lip_settings.target_armature = controller
+        self.report({"INFO"}, f"Created Panda Lip Controller: {controller.name}")
         return {"FINISHED"}
 
 

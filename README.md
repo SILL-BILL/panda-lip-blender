@@ -1,22 +1,51 @@
 # panda-lip-blender
 
-Blender Extension that imports PandaLip v1 (`.pandalip`) AIUEO weights as
-animation on a controller armature. Phase A stops at the controller layer and
-does not create shape-key drivers or depend on any particular character rig.
+Blender Extension that creates a standard AIUEO controller and imports PandaLip
+v1 (`.pandalip`) weights as controller animation. It stops at the controller
+layer: no shape-key drivers are created, and no particular character rig is
+required.
 
 ## Usage
 
-1. Analyze a WAV file with Panda Lip.
-2. Export the analysis as a `.pandalip` file.
-3. In Blender, select the target Armature in **Panda Lip > Panda Lip Import**.
-4. Select the `.pandalip` file.
-5. Set the Start Frame.
-6. Choose the Key Reduction quality. Use **Original** for the Phase A reference behavior.
-7. Click **Import PandaLip**.
-8. Use the generated animation on `CTRL_Lip_A/I/U/E/O` through your own Drivers
+1. Analyze a WAV file with Panda Lip and export a `.pandalip` file.
+2. Open the 3D View sidebar and select the **Panda Lip** tab.
+3. Click **Create Panda Lip Controller**. The new controller is selected as the
+   Target Armature automatically.
+4. Select the `.pandalip` file and set the Start Frame.
+5. Choose the Key Reduction quality. Use **Original** to retain every sample.
+6. Click **Import PandaLip**.
+7. Use the generated animation on `CTRL_Lip_A/I/U/E/O` through your own Drivers
    or facial rig setup.
 
-## Reference controller
+An existing compatible controller can be selected instead of generating one.
+
+## Standard controller
+
+**Create Panda Lip Controller** creates an independent `PandaLip` Armature at the
+3D cursor in a `PandaLip` Collection:
+
+```text
+PandaLip_Root
+├─ CTRL_Lip_A
+├─ CTRL_Lip_I
+├─ CTRL_Lip_U
+├─ CTRL_Lip_E
+└─ CTRL_Lip_O
+```
+
+The five controls are arranged as labelled A/I/U/E/O rows. Two shared hidden
+mesh objects provide the guide/labels and switch Custom Shapes; they remain
+organized in the controller Collection and are disabled for rendering and direct
+selection.
+
+Each channel has a Local Space Limit Location constraint: X is limited to
+`0.0..1.0`, and Y/Z are fixed at `0.0`. Y/Z Location, Rotation, and Scale are
+locked against accidental edits. The Root remains available for positioning the
+whole controller. Creating again does not replace anything: a structurally valid
+controller is reused as the Target and a warning is shown. Generation supports
+Blender Undo.
+
+## Controller contract
 
 The target Armature must contain these pose bones:
 
@@ -44,7 +73,7 @@ directly animate Shape Keys or create, replace, or modify Drivers.
 - Fully validates the PandaLip v1 document, target, required bones, and FPS
   before creating an Action. A failure during Action construction is rolled back.
 
-The 3D View sidebar panel is under **Panda Lip > Panda Lip Import**. Start Frame
+The 3D View sidebar panel is under **Panda Lip > Panda Lip**. Start Frame
 defaults to 1 and is independent of the scene playback range.
 
 ## Key Reduction
@@ -109,6 +138,21 @@ blender --background --factory-startup PandaLip_Controller_Test.blend `
   --python tests/blender/reference_integration.py
 ```
 
+Controller generation and all five Key Reduction choices can be tested headlessly:
+
+```powershell
+blender --background --factory-startup `
+  --python tests/blender/controller_integration.py
+```
+
+Blender disables Undo in background mode. Run the same test once in normal UI mode
+to execute the Undo assertion; Blender closes automatically afterward:
+
+```powershell
+blender --factory-startup --python tests/blender/controller_integration.py `
+  -- --quit-after-tests
+```
+
 The five-minute benchmark accepts `ORIGINAL`, `HIGH`, `MIDDLE`, `LOW`, or
 `CUSTOM <tolerance>` after `--`:
 
@@ -117,6 +161,6 @@ blender --background --factory-startup PandaLip_Controller_Test.blend `
   --python tests/blender/long_duration_benchmark.py -- MIDDLE
 ```
 
-The source manifest targets Blender 4.2+. Phase A is exercised against Blender
-5.1's layered Action API while retaining the legacy F-Curve access path used by
-earlier supported Blender versions.
+The source manifest targets Blender 4.2+. The importer and generated controller
+are exercised against Blender 5.1's layered Action API while retaining the legacy
+F-Curve access path used by earlier supported Blender versions.

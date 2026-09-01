@@ -5,13 +5,18 @@ from __future__ import annotations
 import bpy
 from bpy.props import PointerProperty
 
-from .operators import PANDALIP_OT_import, PANDALIP_OT_select_file
+from .operators import (
+    PANDALIP_OT_create_controller,
+    PANDALIP_OT_import,
+    PANDALIP_OT_select_file,
+)
 from .panels import PANDALIP_PT_import
 from .properties import PANDALIP_PG_settings
 
 CLASSES = (
     PANDALIP_PG_settings,
     PANDALIP_OT_select_file,
+    PANDALIP_OT_create_controller,
     PANDALIP_OT_import,
     PANDALIP_PT_import,
 )
