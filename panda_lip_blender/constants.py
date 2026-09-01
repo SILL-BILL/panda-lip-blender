@@ -11,5 +11,9 @@ MENU_WIDGET_NAME = "cs_PL_Menu"
 SWITCH_WIDGET_NAME = "cs_PL_Switch"
 CONTROLLER_VERSION_KEY = "pandalip_controller_version"
 CONTROLLER_VERSION = 1
+DRIVER_VARIABLE_PREFIX = "pandalip_"
+MAPPING_PROPERTY_NAMES = {
+    channel: f"driver_shape_key_{channel.lower()}" for channel in CHANNELS
+}
 ACTION_PREFIX = "PandaLip_"
 ACTION_GROUP = "Panda Lip"

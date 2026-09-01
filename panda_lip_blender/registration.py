@@ -7,7 +7,9 @@ from bpy.props import PointerProperty
 
 from .operators import (
     PANDALIP_OT_create_controller,
+    PANDALIP_OT_create_drivers,
     PANDALIP_OT_import,
+    PANDALIP_OT_remove_drivers,
     PANDALIP_OT_select_file,
 )
 from .panels import PANDALIP_PT_import
@@ -17,6 +19,8 @@ CLASSES = (
     PANDALIP_PG_settings,
     PANDALIP_OT_select_file,
     PANDALIP_OT_create_controller,
+    PANDALIP_OT_create_drivers,
+    PANDALIP_OT_remove_drivers,
     PANDALIP_OT_import,
     PANDALIP_PT_import,
 )

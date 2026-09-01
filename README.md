@@ -1,9 +1,9 @@
 # panda-lip-blender
 
-Blender Extension that creates a standard AIUEO controller and imports PandaLip
-v1 (`.pandalip`) weights as controller animation. It stops at the controller
-layer: no shape-key drivers are created, and no particular character rig is
-required.
+Blender Extension that creates a standard AIUEO controller, imports PandaLip
+v1 (`.pandalip`) weights as controller animation, and connects the controls to
+arbitrary Mesh Shape Keys. No particular character rig or Shape Key naming
+scheme is required.
 
 ## Usage
 
@@ -14,8 +14,10 @@ required.
 4. Select the `.pandalip` file and set the Start Frame.
 5. Choose the Key Reduction quality. Use **Original** to retain every sample.
 6. Click **Import PandaLip**.
-7. Use the generated animation on `CTRL_Lip_A/I/U/E/O` through your own Drivers
-   or facial rig setup.
+7. Under **Driver Mapping**, select the Source controller and Target Mesh, then
+   choose any Shape Key for each AIUEO channel that the model supports.
+8. Click **Create Drivers**. Playing the imported Action now drives the mapped
+   Shape Keys.
 
 An existing compatible controller can be selected instead of generating one.
 
@@ -47,7 +49,8 @@ Blender Undo.
 
 ## Controller contract
 
-The target Armature must contain these pose bones:
+The import target and Driver Mapping Source Armature must contain these pose
+bones:
 
 - `CTRL_Lip_A`
 - `CTRL_Lip_I`
@@ -56,8 +59,35 @@ The target Armature must contain these pose bones:
 - `CTRL_Lip_O`
 
 Each channel is animated as local `location.x`, where `0.0` is neutral and
-`1.0` is maximum. The importer creates controller animation only. It does not
-directly animate Shape Keys or create, replace, or modify Drivers.
+`1.0` is maximum. The importer still creates controller animation only; Driver
+Mapping is a separate, explicit connection step.
+
+## Driver Mapping
+
+Select a **Source** Armature and a **Target Mesh** in the N-panel. The Target
+must have at least one Shape Key besides Basis. Each A/I/U/E/O field searches
+only the selected Mesh's Shape Keys; fields may be left empty and are skipped,
+but at least one channel must be mapped. Basis and duplicate Shape Key choices
+are rejected.
+
+**Create Drivers** adds a native Blender Driver to each selected Shape Key
+`value`. Its single `TRANSFORMS` variable reads the corresponding
+`CTRL_Lip_X` bone's `LOC_X` in `LOCAL_SPACE`, and the expression is a direct
+1:1 variable reference. No clamp, range remap, multiplier, or name matching is
+applied.
+
+Existing Drivers are never overwritten. An exact Panda Lip Driver for the same
+Source, bone, and Shape Key is reported as already connected and reused;
+anything else is a conflict. Panda Lip Drivers use the variable names
+`pandalip_A` through `pandalip_O` as part of a strict native Driver signature.
+**Remove Panda Lip Drivers** removes only signatures that exactly match the
+currently selected Source/Target pair, leaving every other Driver untouched.
+
+Target and mapping choices are Scene properties and are saved in the `.blend`.
+Object pointers remain safe when an object is renamed. If a Shape Key is renamed
+or the Target changes, the saved name is shown as Invalid and creation stops
+without modifying Drivers. Multiple characters are supported by explicitly
+choosing each Source/Target pair.
 
 ## Phase A behavior
 
@@ -145,12 +175,34 @@ blender --background --factory-startup `
   --python tests/blender/controller_integration.py
 ```
 
+Driver Mapping, conflict protection, rollback, multiple controllers, and the
+full pipeline with every Key Reduction choice can be tested headlessly:
+
+```powershell
+blender --background --factory-startup `
+  --python tests/blender/driver_mapping_integration.py
+```
+
 Blender disables Undo in background mode. Run the same test once in normal UI mode
 to execute the Undo assertion; Blender closes automatically afterward:
 
 ```powershell
 blender --factory-startup --python tests/blender/controller_integration.py `
   -- --quit-after-tests
+```
+
+Use `driver_mapping_integration.py` in the same UI command to exercise Driver
+creation Undo. Mapping persistence is tested in two Blender processes, first to
+save and then to reopen the file:
+
+```powershell
+blender --background --factory-startup --python-exit-code 1 `
+  --python tests/blender/driver_mapping_persistence.py -- `
+  --prepare --output path/to/phase-d-reopen.blend
+blender --background --factory-startup path/to/phase-d-reopen.blend `
+  --python-exit-code 1 `
+  --python tests/blender/driver_mapping_persistence.py -- `
+  --verify --output path/to/phase-d-reopen.blend
 ```
 
 The five-minute benchmark accepts `ORIGINAL`, `HIGH`, `MIDDLE`, `LOW`, or
@@ -161,6 +213,7 @@ blender --background --factory-startup PandaLip_Controller_Test.blend `
   --python tests/blender/long_duration_benchmark.py -- MIDDLE
 ```
 
-The source manifest targets Blender 4.2+. The importer and generated controller
-are exercised against Blender 5.1's layered Action API while retaining the legacy
-F-Curve access path used by earlier supported Blender versions.
+The source manifest targets Blender 4.2+. The importer, generated controller,
+and native Driver API are exercised against Blender 5.1's layered Action API
+while retaining the legacy F-Curve access path used by earlier supported Blender
+versions.

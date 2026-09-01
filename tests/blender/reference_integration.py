@@ -18,6 +18,7 @@ import panda_lip_blender as addon  # noqa: E402
 from panda_lip_blender.constants import BONE_NAMES, CHANNELS  # noqa: E402
 from panda_lip_blender.controller import find_existing_controller  # noqa: E402
 from panda_lip_blender.core import action_base_name  # noqa: E402
+from panda_lip_blender.driver_mapping import create_pandalip_drivers  # noqa: E402
 from panda_lip_blender import operators  # noqa: E402
 from panda_lip_blender.validation import PandaLipValidationError, load_pandalip  # noqa: E402
 
@@ -95,6 +96,46 @@ class ReferenceIntegrationTests(unittest.TestCase):
                 self.target.select_set(True)
                 bpy.context.view_layer.objects.active = self.target
                 bpy.ops.object.mode_set(mode=original_mode)
+
+    def test_reference_controller_drives_generic_shape_keys(self) -> None:
+        mesh = bpy.data.meshes.new("PandaLipReferenceDriverMesh")
+        driven_object = bpy.data.objects.new("PandaLipReferenceDriverTarget", mesh)
+        self.scene.collection.objects.link(driven_object)
+        driven_object.shape_key_add(name="Basis")
+        mappings = {channel: f"ReferenceMouth_{channel}" for channel in CHANNELS}
+        for shape_key_name in mappings.values():
+            driven_object.shape_key_add(name=shape_key_name)
+
+        try:
+            result = create_pandalip_drivers(self.target, driven_object, mappings)
+            self.assertEqual(set(result.created), set(mappings.values()))
+            self.assertEqual(result.reused, ())
+
+            importer.import_pandalip_data(
+                self.data,
+                str(FIXTURE),
+                self.target,
+                self.scene,
+                start_frame=100,
+                reduction_mode="ORIGINAL",
+            )
+            for channel_index, channel in enumerate(CHANNELS, start=1):
+                exact_frame = 100.0 + self.data.samples[channel_index].time * 24.0
+                integer_frame = math.floor(exact_frame)
+                self.scene.frame_set(integer_frame, subframe=exact_frame - integer_frame)
+                for candidate in CHANNELS:
+                    expected = 1.0 if candidate == channel else 0.0
+                    actual = driven_object.data.shape_keys.key_blocks[
+                        mappings[candidate]
+                    ].value
+                    self.assertTrue(
+                        math.isclose(actual, expected, abs_tol=1.0e-5),
+                        f"{channel} sample drove {candidate} to {actual}",
+                    )
+        finally:
+            bpy.data.objects.remove(driven_object, do_unlink=True)
+            if mesh.users == 0:
+                bpy.data.meshes.remove(mesh)
 
     def test_import_creates_x_only_linear_subframe_keys_and_unique_action(self) -> None:
         base_name = action_base_name(str(FIXTURE))

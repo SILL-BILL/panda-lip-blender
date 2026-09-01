@@ -10,6 +10,10 @@ def _armature_poll(_settings: object, candidate: bpy.types.Object) -> bool:
     return candidate.type == "ARMATURE"
 
 
+def _mesh_poll(_settings: object, candidate: bpy.types.Object) -> bool:
+    return candidate.type == "MESH"
+
+
 class PANDALIP_PG_settings(bpy.types.PropertyGroup):
     filepath: StringProperty(
         name="PandaLip File",
@@ -47,4 +51,35 @@ class PANDALIP_PG_settings(bpy.types.PropertyGroup):
         min=0.0,
         max=1.0,
         precision=4,
+    )
+    driver_target_mesh: PointerProperty(
+        name="Target Mesh",
+        description="Mesh containing the Shape Keys driven by the Panda Lip Controller",
+        type=bpy.types.Object,
+        poll=_mesh_poll,
+    )
+    driver_shape_key_a: StringProperty(
+        name="A Shape Key",
+        description="Shape Key driven by CTRL_Lip_A; leave empty to skip",
+        default="",
+    )
+    driver_shape_key_i: StringProperty(
+        name="I Shape Key",
+        description="Shape Key driven by CTRL_Lip_I; leave empty to skip",
+        default="",
+    )
+    driver_shape_key_u: StringProperty(
+        name="U Shape Key",
+        description="Shape Key driven by CTRL_Lip_U; leave empty to skip",
+        default="",
+    )
+    driver_shape_key_e: StringProperty(
+        name="E Shape Key",
+        description="Shape Key driven by CTRL_Lip_E; leave empty to skip",
+        default="",
+    )
+    driver_shape_key_o: StringProperty(
+        name="O Shape Key",
+        description="Shape Key driven by CTRL_Lip_O; leave empty to skip",
+        default="",
     )

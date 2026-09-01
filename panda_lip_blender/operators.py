@@ -8,6 +8,12 @@ from bpy_extras.io_utils import ImportHelper
 
 from .constants import CHANNELS
 from .controller import create_controller, find_existing_controller
+from .driver_mapping import (
+    DriverMappingError,
+    create_pandalip_drivers,
+    remove_pandalip_drivers,
+    settings_mappings,
+)
 from .importer import import_pandalip_file
 from .validation import PandaLipValidationError
 
@@ -61,6 +67,54 @@ class PANDALIP_OT_create_controller(bpy.types.Operator):
 
         context.scene.panda_lip_settings.target_armature = controller
         self.report({"INFO"}, f"Created Panda Lip Controller: {controller.name}")
+        return {"FINISHED"}
+
+
+class PANDALIP_OT_create_drivers(bpy.types.Operator):
+    bl_idname = "pandalip.create_drivers"
+    bl_label = "Create Drivers"
+    bl_description = "Connect configured Shape Keys to the selected Panda Lip Controller"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        settings = context.scene.panda_lip_settings
+        try:
+            result = create_pandalip_drivers(
+                settings.target_armature,
+                settings.driver_target_mesh,
+                settings_mappings(settings),
+            )
+        except DriverMappingError as exc:
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+
+        message = f"Created {len(result.created)} Panda Lip Driver(s)"
+        if result.reused:
+            message += f"; {len(result.reused)} already connected"
+        self.report({"INFO"}, message)
+        return {"FINISHED"}
+
+
+class PANDALIP_OT_remove_drivers(bpy.types.Operator):
+    bl_idname = "pandalip.remove_drivers"
+    bl_label = "Remove Panda Lip Drivers"
+    bl_description = "Remove only Panda Lip Drivers for the selected Source and Target"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        settings = context.scene.panda_lip_settings
+        try:
+            result = remove_pandalip_drivers(
+                settings.target_armature,
+                settings.driver_target_mesh,
+            )
+        except DriverMappingError as exc:
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+        if not result.removed:
+            self.report({"WARNING"}, "No Panda Lip Drivers found for this Source and Target")
+            return {"CANCELLED"}
+        self.report({"INFO"}, f"Removed {len(result.removed)} Panda Lip Driver(s)")
         return {"FINISHED"}
 
 
