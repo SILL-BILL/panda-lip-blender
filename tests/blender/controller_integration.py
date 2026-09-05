@@ -230,6 +230,34 @@ class ControllerIntegrationTests(unittest.TestCase):
         self.assertEqual(generated_counts["ORIGINAL"], 35)
         self.assertLess(generated_counts["MIDDLE"], generated_counts["ORIGINAL"])
 
+    def test_file_browse_property_and_import_connection(self) -> None:
+        settings = self.scene.panda_lip_settings
+        filepath_property = settings.bl_rna.properties["filepath"]
+        self.assertEqual(filepath_property.subtype, "FILE_PATH")
+
+        controller = self._create()
+        missing = FIXTURE.with_name("missing-file.pandalip")
+        settings.filepath = str(missing)
+        action_count = len(bpy.data.actions)
+
+        with self.assertRaisesRegex(RuntimeError, "PandaLip file does not exist"):
+            bpy.ops.pandalip.import_animation()
+        self.assertEqual(len(bpy.data.actions), action_count)
+        self.assertIsNone(controller.animation_data)
+
+        settings.filepath = ""
+        self.assertEqual(
+            bpy.ops.pandalip.select_file(filepath=str(FIXTURE)),
+            {"FINISHED"},
+        )
+        self.assertEqual(
+            Path(bpy.path.abspath(settings.filepath)).resolve(),
+            FIXTURE.resolve(),
+        )
+        self.assertEqual(bpy.ops.pandalip.import_animation(), {"FINISHED"})
+        self.assertIsNotNone(controller.animation_data)
+        self.assertIsNotNone(controller.animation_data.action)
+
     def test_controller_generation_is_undoable(self) -> None:
         if bpy.app.background:
             self.skipTest("Blender disables ed.undo in background mode")

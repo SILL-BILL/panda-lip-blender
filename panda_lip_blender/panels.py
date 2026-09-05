@@ -26,9 +26,7 @@ class PANDALIP_PT_import(bpy.types.Panel):
 
         import_box = layout.box()
         import_box.label(text="Import")
-        row = import_box.row(align=True)
-        row.prop(settings, "filepath", text="File")
-        row.operator("pandalip.select_file", text="", icon="FILE_FOLDER")
+        import_box.prop(settings, "filepath", text="File")
         import_box.prop(settings, "target_armature")
         import_box.prop(settings, "start_frame")
         import_box.separator()
@@ -72,5 +70,13 @@ class PANDALIP_PT_import(bpy.types.Panel):
             )
             row.label(text=status.label, icon=status.icon)
         create_row = driver_box.row()
+        create_row.enabled = (
+            settings.target_armature is not None
+            and target is not None
+            and any(
+                getattr(settings, MAPPING_PROPERTY_NAMES[channel])
+                for channel in CHANNELS
+            )
+        )
         create_row.operator("pandalip.create_drivers", icon="DRIVER")
         driver_box.operator("pandalip.remove_drivers", icon="X")
